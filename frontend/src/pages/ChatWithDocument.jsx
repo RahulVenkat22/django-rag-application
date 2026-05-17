@@ -3,14 +3,33 @@ import './ChatWithDocument.css';
 
 function ChatWithDocument() {
   const [message, setMessage] = useState('');
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleUploadClick = () => fileInputRef.current?.click();
 
-  const handleFileChange = (e) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      console.log('Selected files:', files);
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploading(true);
+    try {
+      const res = await fetch('/api/documents/upload/', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+      const data = await res.json();
+      console.log('Uploaded:', data);
+    } catch (err) {
+      console.error(err);
+      alert('Upload failed. Check the console for details.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -25,7 +44,9 @@ function ChatWithDocument() {
           type="button"
           className="upload-btn"
           onClick={handleUploadClick}
+          disabled={uploading}
           aria-label="Upload document"
+          title={uploading ? 'Uploading...' : 'Upload document'}
         >
           <svg
             width="20"
@@ -45,7 +66,6 @@ function ChatWithDocument() {
           ref={fileInputRef}
           onChange={handleFileChange}
           style={{ display: 'none' }}
-          multiple
         />
         <input
           type="text"
